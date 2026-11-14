@@ -1,0 +1,274 @@
+\documentclass[11pt,letterpaper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{textcomp}
+\usepackage[spanish,es-noshorthands]{babel}
+\usepackage[letterpaper,top=3cm,bottom=2.5cm,left=2.5cm,right=2.5cm,headheight=1.1cm,headsep=0.6cm]{geometry}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{fancyhdr}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue,urlcolor=blue]{hyperref}
+\urlstyle{same}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\includegraphics[height=0.8cm]{imagenes/logo-usm.png}}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+\fancyfoot[L]{SIG}
+\fancyfoot[C]{\textbf{\thepage}}
+\fancyfoot[R]{Lorenzo Ruiz}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  columns=fullflexible,
+  keepspaces=true,
+  breaklines=true,
+  upquote=true,
+  aboveskip=6pt,
+  belowskip=4pt,
+  literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1
+           {Á}{{\'A}}1 {É}{{\'E}}1 {Í}{{\'I}}1 {Ó}{{\'O}}1 {Ú}{{\'U}}1 {Ñ}{{\~N}}1
+}
+
+\begin{document}
+
+\begin{titlepage}
+\thispagestyle{empty}
+\noindent\includegraphics[width=0.39\textwidth]{imagenes/logo-industrias.png}
+
+\vspace*{4.2cm}
+\noindent\rule{\textwidth}{0.6pt}
+\begin{center}
+\vspace{-4pt}
+{\Huge\textsc{Laboratorio 5}}\\[2pt]
+{\large\textsc{Entregable SQL (2/2): Andes Bike}}
+\vspace{-4pt}
+\end{center}
+\noindent\rule{\textwidth}{0.6pt}
+
+\vspace{2.6cm}
+\begin{center}
+\textbf{Lorenzo Ruiz}\\
+Ingeniería Civil Industrial, 202304619-1, \textit{lflandez@usm.cl}\\
+Repositorio: \url{https://github.com/LorenzoRF23/ICN292-Lab5-Ruiz-Lorenzo}
+\end{center}
+
+\vfill
+\begin{center}
+\textsc{noviembre, 2026}\\[0.6cm]
+\textsc{Campus Vitacura}
+\end{center}
+\vspace{1.5cm}
+\end{titlepage}
+
+\section*{Consulta 1}
+\begin{figure}[H]
+\begin{lstlisting}
+-- Consulta 1: vendedores con su cantidad de ventas (incluye los que tienen cero)
+SELECT v.nombre,
+       COUNT(ve.id_venta) AS cantidad_ventas
+FROM vendedores v
+LEFT JOIN ventas ve ON ve.id_vendedor = v.id_vendedor
+GROUP BY v.id_vendedor, v.nombre
+ORDER BY cantidad_ventas DESC, v.nombre;
+\end{lstlisting}
+\centering
+\includegraphics[width=\textwidth]{imagenes/c01.png}
+\caption{Resultado de la consulta 1}
+\end{figure}
+
+
+\clearpage
+\section*{Consulta 2}
+\begin{figure}[H]
+\begin{lstlisting}
+-- Consulta 2: ventas y unidades por tienda (incluye tiendas sin vendedores)
+SELECT t.nombre AS tienda,
+       COUNT(ve.id_venta)            AS cantidad_ventas,
+       COALESCE(SUM(ve.unidades), 0) AS unidades_vendidas
+FROM tiendas t
+LEFT JOIN vendedores v ON v.id_tienda   = t.id_tienda
+LEFT JOIN ventas ve    ON ve.id_vendedor = v.id_vendedor
+GROUP BY t.id_tienda, t.nombre
+ORDER BY unidades_vendidas DESC, t.nombre;
+\end{lstlisting}
+\centering
+\includegraphics[width=\textwidth]{imagenes/c02.png}
+\caption{Resultado de la consulta 2}
+\end{figure}
+
+
+\clearpage
+\section*{Consulta 3}
+\begin{figure}[H]
+\begin{lstlisting}
+-- Consulta 3: tiendas sin ningún vendedor asignado
+SELECT t.id_tienda, t.nombre, t.comuna
+FROM tiendas t
+LEFT JOIN vendedores v ON v.id_tienda = t.id_tienda
+WHERE v.id_vendedor IS NULL;
+\end{lstlisting}
+\centering
+\includegraphics[width=\textwidth]{imagenes/c03.png}
+\caption{Resultado de la consulta 3}
+\end{figure}
+
+
+\clearpage
+\section*{Consulta 4}
+\begin{figure}[H]
+\begin{lstlisting}
+-- Consulta 4: modelos que no se vendieron ni una vez en junio de 2025
+SELECT b.id_bicicleta, b.modelo, b.categoria
+FROM bicicletas b
+LEFT JOIN ventas ve
+       ON ve.id_bicicleta = b.id_bicicleta
+      AND ve.fecha >= '2025-06-01'
+      AND ve.fecha <  '2025-07-01'
+WHERE ve.id_venta IS NULL
+ORDER BY b.id_bicicleta;
+\end{lstlisting}
+\centering
+\includegraphics[width=\textwidth]{imagenes/c04.png}
+\caption{Resultado de la consulta 4}
+\end{figure}
+
+\noindent\textbf{Explicación:} Puse la condición del mes en el \texttt{ON} del \texttt{LEFT JOIN}, para que solo se unan las ventas de junio y los modelos sin ventas ese mes queden con NULL; si la hubiera puesto en el \texttt{WHERE}, el filtro de fecha habría descartado esas filas con NULL y la consulta habría devuelto un resultado vacío.
+
+\clearpage
+\section*{Consulta 5}
+\begin{figure}[H]
+\begin{lstlisting}
+-- Consulta 5: vendedores sin ventas, con el nombre de su tienda
+SELECT v.nombre AS vendedor,
+       t.nombre AS tienda
+FROM vendedores v
+LEFT JOIN tiendas t ON t.id_tienda  = v.id_tienda
+LEFT JOIN ventas ve ON ve.id_vendedor = v.id_vendedor
+WHERE ve.id_venta IS NULL
+ORDER BY v.nombre;
+\end{lstlisting}
+\centering
+\includegraphics[width=\textwidth]{imagenes/c05.png}
+\caption{Resultado de la consulta 5}
+\end{figure}
+
+
+\clearpage
+\section*{Consulta 6}
+\begin{figure}[H]
+\begin{lstlisting}
+-- Consulta 6: pares de vendedores de la misma tienda, primero el más antiguo
+SELECT a.nombre        AS vendedor_antiguo,
+       a.fecha_ingreso AS ingreso_antiguo,
+       b.nombre        AS vendedor_nuevo,
+       b.fecha_ingreso AS ingreso_nuevo,
+       t.nombre        AS tienda
+FROM vendedores a
+JOIN vendedores b
+  ON b.id_tienda = a.id_tienda
+ AND (a.fecha_ingreso < b.fecha_ingreso
+      OR (a.fecha_ingreso = b.fecha_ingreso AND a.id_vendedor < b.id_vendedor))
+JOIN tiendas t ON t.id_tienda = a.id_tienda
+ORDER BY t.nombre, a.fecha_ingreso, b.fecha_ingreso;
+\end{lstlisting}
+\centering
+\includegraphics[width=\textwidth]{imagenes/c06.png}
+\caption{Resultado de la consulta 6}
+\end{figure}
+
+
+\clearpage
+\section*{Consulta 7}
+\begin{figure}[H]
+\begin{lstlisting}
+-- Consulta 7: monto en Montaña y Ruta por tienda, solo las que superan 2.000.000
+SELECT t.nombre AS tienda,
+       SUM(ve.unidades * b.precio) AS monto_montana_ruta
+FROM tiendas t
+JOIN vendedores v  ON v.id_tienda    = t.id_tienda
+JOIN ventas ve     ON ve.id_vendedor = v.id_vendedor
+JOIN bicicletas b  ON b.id_bicicleta = ve.id_bicicleta
+WHERE b.categoria IN ('Montaña', 'Ruta')
+GROUP BY t.id_tienda, t.nombre
+HAVING SUM(ve.unidades * b.precio) > 2000000
+ORDER BY monto_montana_ruta DESC;
+\end{lstlisting}
+\centering
+\includegraphics[width=\textwidth]{imagenes/c07.png}
+\caption{Resultado de la consulta 7}
+\end{figure}
+
+
+\clearpage
+\section*{Consulta 8}
+\begin{figure}[H]
+\begin{lstlisting}
+-- Consulta 8: bicicletas con precio sobre el promedio del catálogo
+SELECT modelo, precio
+FROM bicicletas
+WHERE precio > (SELECT AVG(precio) FROM bicicletas)
+ORDER BY precio DESC;
+\end{lstlisting}
+\centering
+\includegraphics[width=0.58\textwidth]{imagenes/c08.png}
+\caption{Resultado de la consulta 8}
+\end{figure}
+
+\begin{figure}[H]
+\begin{lstlisting}
+-- Consulta 8 (apoyo): valor del promedio del catálogo usado en la subconsulta
+SELECT AVG(precio) AS promedio_catalogo
+FROM bicicletas;
+\end{lstlisting}
+\centering
+\includegraphics[width=0.58\textwidth]{imagenes/c09.png}
+\caption{Promedio del catálogo usado en la subconsulta}
+\end{figure}
+
+\noindent\textbf{Explicación:} El promedio del catálogo es \$657.490; lo obtuve de la subconsulta \texttt{SELECT AVG(precio) FROM bicicletas}, la misma que usa el \texttt{WHERE}, ejecutada por separado en la segunda captura.
+
+\clearpage
+\section*{Consulta 9}
+\begin{figure}[H]
+\begin{lstlisting}
+-- Consulta 9: vendedores con promedio de unidades por venta sobre el de la cadena
+SELECT v.nombre,
+       AVG(ve.unidades) AS promedio_unidades
+FROM vendedores v
+JOIN ventas ve ON ve.id_vendedor = v.id_vendedor
+GROUP BY v.id_vendedor, v.nombre
+HAVING AVG(ve.unidades) > (SELECT AVG(unidades) FROM ventas)
+ORDER BY promedio_unidades DESC, v.nombre;
+\end{lstlisting}
+\centering
+\includegraphics[width=\textwidth]{imagenes/c10.png}
+\caption{Resultado de la consulta 9}
+\end{figure}
+
+
+\clearpage
+\section*{Consulta 10}
+\begin{figure}[H]
+\begin{lstlisting}
+-- Consulta 10: monto total vendido por cada vendedor (incluye los que no vendieron)
+SELECT v.nombre,
+       SUM(ve.unidades * b.precio) AS monto_total
+FROM vendedores v
+LEFT JOIN ventas ve    ON ve.id_vendedor = v.id_vendedor
+LEFT JOIN bicicletas b ON b.id_bicicleta = ve.id_bicicleta
+GROUP BY v.id_vendedor, v.nombre
+ORDER BY monto_total DESC;
+\end{lstlisting}
+\centering
+\includegraphics[width=\textwidth]{imagenes/c11.png}
+\caption{Resultado de la consulta 10}
+\end{figure}
+
+\noindent\textbf{Explicación:} Fernanda Lillo y Rubén Castro aparecen con NULL porque no tienen ventas: el \texttt{LEFT JOIN} les deja \texttt{unidades} y \texttt{precio} en NULL y \texttt{SUM} sobre puros NULL devuelve NULL; para que mostraran cero habría que escribir \texttt{COALESCE(SUM(ve.unidades * b.precio), 0)}.
+
+\end{document}
